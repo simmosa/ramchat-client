@@ -7,8 +7,6 @@ const socket = io()
 
 export default class RamChat extends Component {
     
-
-
     state = {
         conversation: [],
         chatInput: '',
@@ -40,7 +38,9 @@ export default class RamChat extends Component {
     }
     
     componentWillUnmount() {
-        socket.emit('disconnect')
+        this.setState({welcomeDiv: 'welcome-div'})
+        this.setState({chatDiv: 'chat-div hide-element'})
+        socket.emit('disconnect', {roomName: this.state.room})
         socket.off()
     }
     
@@ -58,7 +58,7 @@ export default class RamChat extends Component {
         this.setState({welcomeDiv: 'welcome-div hide-element'})
         this.setState({chatDiv: 'chat-div'})
 
-        this.setState({alias: msg.alias})
+        this.setState({alias: msg.aliasName})
         this.onMessage(msg)
     }
 
@@ -121,15 +121,30 @@ export default class RamChat extends Component {
     handleAliasInput = (e) => this.setState({alias: e.target.value})
 
     handleAliasBtn = () => {
-        console.log(`changing alias to room, ${this.state.room}`)
         socket.emit('changeAlias', this.state.alias, this.state.room)
+        this.handleToggleArrow()
+        this.handleToggleHamburger()
     }
+
+    // displayAlias = (comment,index) => {
+    //     if (comment.alias === '' || comment.alias === this.state.conversation[index-1].alias) {
+    //         return null
+    //     } else {
+    //         return comment.alias
+    //     }
+    // }
 
     displayAlias = (comment,index) => {
         if (comment.alias === '' || comment.alias === this.state.conversation[index-1].alias) {
             return null
         } else {
-            return comment.alias
+            if (comment.alias === this.state.alias) {
+                return <p className="alias-p alias-of-this-user"><strong>{comment.alias}</strong></p>
+            } else if (comment.alias === "announcement") {
+                return <p className="alias-p announcement">{comment.alias}</p>
+            } else {
+                return <p className="alias-p"><strong>{comment.alias}</strong></p>
+            }
         }
     }
 
@@ -162,16 +177,17 @@ export default class RamChat extends Component {
                         <div className={this.state.chatStatsDiv}> 
                             <div className="slide-menu-div">
                                 <div className={this.state.roomAndConnectionsDiv}>
-                                    <p>Room Name: {this.state.room}</p>
-                                    <p>Participants: {this.state.participants}</p>
+                                    <p>Room Name: <span><strong>{this.state.room}</strong></span></p>
+                                    <p>Participants: <span><strong>{this.state.participants}</strong></span></p>
                                 </div>
                                 <div className={this.state.nameAndTerminateDiv}>
                                     <div className="nickname-div">
-                                        <p>alias:</p>
+                                        <p>Alias:
                                         <input className="alias-input" type="text" placeholder="enter alias" value={this.state.alias} onChange={this.handleAliasInput} onKeyPress={(e) => e.key === 'Enter' ? this.handleAliasBtn() : null}/>
-                                        <button onClick={this.handleAliasBtn}>save</button>
+                                        <button className="save-btn" onClick={this.handleAliasBtn}>save</button>
+                                        </p>
                                     </div>
-                                    <div>
+                                    <div className="logout-div">
                                         <a href="/">logout</a>
                                     </div>
                                 </div>
@@ -191,10 +207,11 @@ export default class RamChat extends Component {
                             {/* {this.state.conversation.map((comment, index) => <li className="comment-li" key={index}>{comment}</li> )} */}
                             {this.state.conversation.map((comment, index) => {
                                 return (
-                                    <span>
-                                        <p className="alias-p" key={index}>{this.displayAlias(comment,index)}</p>
-                                        <li className="comment-li" key={index+1}>{comment.message}</li> 
-                                    </span>
+                                    <div className="comment-div">
+                                        {/* <p className="alias-p">{this.displayAlias(comment,index)}</p> */}
+                                        {this.displayAlias(comment,index)}
+                                        <li className="comment-li" key={index}>{comment.message}</li> 
+                                    </div>
                                 )
                             })}
                         </ul>
