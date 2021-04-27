@@ -114,6 +114,13 @@
     height: 90%;
 }
 
+.comment-li {
+    margin: 0;
+}
+.alias-p {
+    margin: 0 auto 0 -2em;
+}
+
 .chat-input {
     width: 90%;
     font-size: 1.2em;

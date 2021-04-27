@@ -12,8 +12,8 @@ export default class RamChat extends Component {
     state = {
         conversation: [],
         chatInput: '',
-        secretCode: '', // used to match clients on the server, to view the same chat via socket.io
-        joinCode: '',
+        room: '', // used to match clients on the server, to view the same chat via socket.io
+        joinRoom: '',
         welcomeDiv: 'welcome-div',
         // chatBoxDiv: 'chat-box-div hide-element'
         chatDiv: 'chat-div hide-element',
@@ -23,7 +23,8 @@ export default class RamChat extends Component {
         roomAndConnectionsDiv: 'room-and-connections-div',
         nameAndTerminateDiv: 'name-and-terminate-div hide-element',
 
-        alias: ''
+        alias: '',
+        participants: 0
     }
     
     componentDidMount() {
@@ -32,8 +33,9 @@ export default class RamChat extends Component {
         //         conversation: [...this.state.conversation, message]
         //     })
         // })
-        socket.on('successfulRegistration', this.onCodeRegistered)
+        socket.on('successfulRegistration', this.onSucessRegistered)
         socket.on('successfulJoin', this.onSuccessfulJoin)
+        socket.on('participants', this.onParticipants)
         socket.on('message', this.onMessage)
     }
     
@@ -43,42 +45,43 @@ export default class RamChat extends Component {
     }
     
     
-    onCodeRegistered = (message) => {
+    onSucessRegistered = (message) => {
         this.setState({welcomeDiv: 'welcome-div hide-element'})
-        // this.setState({chatBoxDiv: 'chat-box-div'})
         this.setState({chatDiv: 'chat-div'})
 
         this.setState({alias: 'Host'})
+        this.setState({participants: 1})
         this.onMessage(message)
     }
 
-    onSuccessfulJoin = (message) => { // these 2 fuctions do the same thing. Later versions might have them do different things.
+    onSuccessfulJoin = (msg) => { // these 2 fuctions do the same thing. Later versions might have them do different things.
         this.setState({welcomeDiv: 'welcome-div hide-element'})
-        // this.setState({chatBoxDiv: 'chat-box-div'})
         this.setState({chatDiv: 'chat-div'})
 
-
-        this.onMessage(message)
+        this.setState({alias: msg.alias})
+        this.onMessage(msg)
     }
 
-    onMessage = (message) => {
-        this.setState({ conversation: [...this.state.conversation, message] })
+    onParticipants = (num) => this.setState({ participants: num})
+    
+    onMessage = (msg) => {
+        this.setState({ conversation: [...this.state.conversation, msg.message] })
     }
     
-    handleStartCodeInput = (e) => this.setState({secretCode: e.target.value})
+    handleStartCodeInput = (e) => this.setState({room: e.target.value})
 
     handleStartCodeBtn = () => {
-        let code = this.state.secretCode
-        socket.emit('codeStart', code)
+        let room = this.state.room
+        socket.emit('startRoom', room)
     }
 
-    handleJoinCodeInput = (e) => this.setState({joinCode: e.target.value})
+    handleJoinCodeInput = (e) => this.setState({joinRoom: e.target.value})
 
     handleJoinCodeBtn = () => { 
-        let code = this.state.joinCode
-        socket.emit('codeJoin', code)
-        this.setState({secretCode: code})
-        console.log(code)
+        console.log("sending to join room" + this.state.joinRoom)
+        let joinRoom = this.state.joinRoom
+        socket.emit('joinRoom', joinRoom)
+        this.setState({room: joinRoom})
     }
     
 
@@ -108,7 +111,7 @@ export default class RamChat extends Component {
 
     handleChatBtn = () => {
         let message = this.state.chatInput
-        socket.emit('sendmessage', message, this.state.secretCode)
+        socket.emit('sendmessage', message, this.state.room)
         this.setState({chatInput: ''})
     }
 
@@ -142,13 +145,13 @@ export default class RamChat extends Component {
                         <div className={this.state.chatStatsDiv}> 
                             <div className="slide-menu-div">
                                 <div className={this.state.roomAndConnectionsDiv}>
-                                    <p>Room Name:</p>
-                                    <p>Connections: </p>
+                                    <p>Room Name: {this.state.room}</p>
+                                    <p>Participants: {this.state.participants}</p>
                                 </div>
                                 <div className={this.state.nameAndTerminateDiv}>
                                     <div className="nickname-div">
                                         <p>alias:</p>
-                                        <input className="alias-input" type="text" placeholder="enter alias"/><button>save</button>
+                                        <input className="alias-input" type="text" placeholder="enter alias" value={this.state.alias}/><button>save</button>
                                     </div>
                                     <div>
                                         <a href="/">logout</a>
@@ -168,6 +171,16 @@ export default class RamChat extends Component {
                     <div className="chat-box-div">
                         <ul className="chat-ul">
                             {this.state.conversation.map((comment, index) => <li className="comment-li" key={index}>{comment}</li> )}
+                            {/* {this.state.conversation.map((comment, index) => {
+                                return (
+                                    <div>
+                                        <p>{this.state.alias}</p>
+                                        <li className="comment-li" key={index}>{comment}</li> 
+                                    </div>
+                                )
+                            })} */}
+                            
+
                         </ul>
                         <input className="chat-input" type="text" placeholder="Type message ..." onChange={this.handleChatInput} value={this.state.chatInput} onKeyPress={(e) => e.key === 'Enter' ? this.handleChatBtn() : null}/>
                         {/* <button className="chat-btn" onClick={this.handleChatBtn}>submit</button> */}

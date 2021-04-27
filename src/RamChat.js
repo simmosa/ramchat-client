@@ -65,7 +65,11 @@ export default class RamChat extends Component {
     onParticipants = (num) => this.setState({ participants: num})
     
     onMessage = (msg) => {
-        this.setState({ conversation: [...this.state.conversation, msg.message] })
+        let newMessage = {
+            alias: msg.alias,
+            message: msg.message
+        }
+        this.setState({ conversation: [...this.state.conversation, newMessage] })
     }
     
     handleStartCodeInput = (e) => this.setState({room: e.target.value})
@@ -78,7 +82,6 @@ export default class RamChat extends Component {
     handleJoinCodeInput = (e) => this.setState({joinRoom: e.target.value})
 
     handleJoinCodeBtn = () => { 
-        console.log("sending to join room" + this.state.joinRoom)
         let joinRoom = this.state.joinRoom
         socket.emit('joinRoom', joinRoom)
         this.setState({room: joinRoom})
@@ -115,6 +118,20 @@ export default class RamChat extends Component {
         this.setState({chatInput: ''})
     }
 
+    handleAliasInput = (e) => this.setState({alias: e.target.value})
+
+    handleAliasBtn = () => {
+        console.log(`changing alias to room, ${this.state.room}`)
+        socket.emit('changeAlias', this.state.alias, this.state.room)
+    }
+
+    displayAlias = (comment,index) => {
+        if (comment.alias === '' || comment.alias === this.state.conversation[index-1].alias) {
+            return null
+        } else {
+            return comment.alias
+        }
+    }
 
     render() {
 
@@ -151,7 +168,8 @@ export default class RamChat extends Component {
                                 <div className={this.state.nameAndTerminateDiv}>
                                     <div className="nickname-div">
                                         <p>alias:</p>
-                                        <input className="alias-input" type="text" placeholder="enter alias" value={this.state.alias}/><button>save</button>
+                                        <input className="alias-input" type="text" placeholder="enter alias" value={this.state.alias} onChange={this.handleAliasInput} onKeyPress={(e) => e.key === 'Enter' ? this.handleAliasBtn() : null}/>
+                                        <button onClick={this.handleAliasBtn}>save</button>
                                     </div>
                                     <div>
                                         <a href="/">logout</a>
@@ -170,7 +188,15 @@ export default class RamChat extends Component {
                     {/* <div className={this.state.chatBoxDiv}> */}
                     <div className="chat-box-div">
                         <ul className="chat-ul">
-                            {this.state.conversation.map((comment, index) => <li className="comment-li" key={index}>{comment}</li> )}
+                            {/* {this.state.conversation.map((comment, index) => <li className="comment-li" key={index}>{comment}</li> )} */}
+                            {this.state.conversation.map((comment, index) => {
+                                return (
+                                    <span>
+                                        <p className="alias-p" key={index}>{this.displayAlias(comment,index)}</p>
+                                        <li className="comment-li" key={index+1}>{comment.message}</li> 
+                                    </span>
+                                )
+                            })}
                         </ul>
                         <input className="chat-input" type="text" placeholder="Type message ..." onChange={this.handleChatInput} value={this.state.chatInput} onKeyPress={(e) => e.key === 'Enter' ? this.handleChatBtn() : null}/>
                         {/* <button className="chat-btn" onClick={this.handleChatBtn}>submit</button> */}
